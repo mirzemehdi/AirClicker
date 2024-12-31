@@ -36,9 +36,24 @@ import io.ktor.websocket.close
 import io.ktor.websocket.readText
 import io.ktor.websocket.send
 import kotlinx.coroutines.launch
+import java.awt.MouseInfo
+import java.awt.Robot
+import java.awt.Toolkit
 import java.net.ServerSocket
+import kotlin.math.roundToInt
 
 fun main() = application {
+
+    // Example: Move the mouse by (10, 20) units
+    moveMouseByDelta(10f, 20f)
+
+    // Simulate continuous movement based on some hypothetical data
+    repeat(50) {
+        moveMouseByDelta(5f, -5f) // Adjust the deltas as needed
+        Thread.sleep(100) // Small delay to simulate real-time updates
+    }
+
+
     var isServerRunning by remember { mutableStateOf(false) }
     var server: EmbeddedServer<NettyApplicationEngine, NettyApplicationEngine.Configuration>? by remember {
         mutableStateOf(
@@ -98,6 +113,21 @@ fun main() = application {
 
         }
     }
+}
+
+fun moveMouseByDelta(deltaX: Float, deltaY: Float) {
+    val robot = Robot()
+    val mousePointer = MouseInfo.getPointerInfo().location
+
+    val sensitivity = 1f
+    // Calculate new position
+    val newX = mousePointer.x + (deltaX * sensitivity).toInt()
+    val newY = mousePointer.y + (deltaY * sensitivity).toInt()
+
+    val screenSize = Toolkit.getDefaultToolkit().screenSize
+    val constrainedX = newX.coerceIn(0, screenSize.width - 1)
+    val constrainedY = newY.coerceIn(0, screenSize.height - 1)
+    robot.mouseMove(constrainedX, constrainedY)
 }
 
 fun startServer(
