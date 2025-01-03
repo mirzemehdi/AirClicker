@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.Button
 import androidx.compose.material.Text
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -30,112 +31,117 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
 import io.ktor.server.websocket.WebSockets
 import io.ktor.server.websocket.webSocket
-import io.ktor.websocket.CloseReason
 import io.ktor.websocket.Frame
-import io.ktor.websocket.close
 import io.ktor.websocket.readText
 import io.ktor.websocket.send
 import kotlinx.coroutines.launch
-import java.awt.MouseInfo
-import java.awt.Robot
-import java.awt.Toolkit
+import kotlinx.serialization.json.Json
+import java.net.InetAddress
 import java.net.ServerSocket
-import kotlin.math.roundToInt
 
 fun main() = application {
-
-    // Example: Move the mouse by (10, 20) units
-    moveMouseByDelta(10f, 20f)
-
-    // Simulate continuous movement based on some hypothetical data
-    repeat(50) {
-        moveMouseByDelta(5f, -5f) // Adjust the deltas as needed
-        Thread.sleep(100) // Small delay to simulate real-time updates
-    }
-
-
-    var isServerRunning by remember { mutableStateOf(false) }
-    var server: EmbeddedServer<NettyApplicationEngine, NettyApplicationEngine.Configuration>? by remember {
-        mutableStateOf(
-            null
-        )
-    }
-    val applicationScope = rememberCoroutineScope()
-
-    var status: String by remember { mutableStateOf("") }
-    var port: Int by remember { mutableStateOf(8080) }
-
     Window(
         onCloseRequest = ::exitApplication,
         title = "AirClicker",
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
-            modifier = androidx.compose.ui.Modifier.fillMaxSize()
-        ) {
-            Text("AirClicker WebSocket Server")
-
-            BasicTextField(
-                value = "$port",
-                onValueChange = {
-                    port = it.toIntOrNull() ?: 8080
-                }
-
-            )
-
-            Button(onClick = {
-                applicationScope.launch {
-                    if (isServerRunning) {
-                        stopServer(server, onMessage = { status = it })
-                        isServerRunning = false
-                    } else {
-                        startServer(port = port, onMessage = { status = it }).also {
-                            it?.let {
-                                isServerRunning = true
-                                server = it
-                            }
-                        }
-                    }
-                }
-            }) {
-                Text(if (isServerRunning) "Stop Server" else "Start Server")
-            }
-
-
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(16.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)
-            ) {
-                Text("Status: ")
-                Text(status)
-            }
-
-        }
+        DesktopApp(modifier = Modifier.fillMaxSize())
     }
 }
 
-fun moveMouseByDelta(deltaX: Float, deltaY: Float) {
-    val robot = Robot()
-    val mousePointer = MouseInfo.getPointerInfo().location
+@Composable
+private fun DesktopApp(modifier: Modifier = Modifier) {
+    var server: EmbeddedServer<NettyApplicationEngine, NettyApplicationEngine.Configuration>? by remember {
+        mutableStateOf(null)
+    }
+    var isServerRunning by remember { mutableStateOf(false) }
+    val applicationScope = rememberCoroutineScope()
+    var status: String by remember { mutableStateOf("") }
+    var port: Int by remember { mutableStateOf(8080) }
 
-    val sensitivity = 1f
-    // Calculate new position
-    val newX = mousePointer.x + (deltaX * sensitivity).toInt()
-    val newY = mousePointer.y + (deltaY * sensitivity).toInt()
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
+        modifier = modifier
+    ) {
+        Text("AirClicker WebSocket Server")
+        Text("Host: ${InetAddress.getLocalHost().hostAddress}")
 
-    val screenSize = Toolkit.getDefaultToolkit().screenSize
-    val constrainedX = newX.coerceIn(0, screenSize.width - 1)
-    val constrainedY = newY.coerceIn(0, screenSize.height - 1)
-    robot.mouseMove(constrainedX, constrainedY)
+        BasicTextField(
+            value = "PORT: $port",
+            onValueChange = {
+                port = it.toIntOrNull() ?: 8080
+            }
+
+        )
+
+        Button(onClick = {
+            applicationScope.launch {
+                if (isServerRunning) {
+                    stopServer(server, onMessage = { status = it })
+                    isServerRunning = false
+                } else {
+                    startServer(port = port, onMessage = { status = it }).also {
+                        it?.let {
+                            isServerRunning = true
+                            server = it
+                        }
+                    }
+                }
+            }
+        }) {
+            Text(if (isServerRunning) "Stop Server" else "Start Server")
+        }
+
+
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)
+        ) {
+            Text("Status: ")
+            Text(status)
+        }
+
+    }
 }
 
-fun startServer(
+
+private fun Application.module() {
+    val mouseCommandExecutor = MouseCommandExecutor()
+    install(WebSockets)
+    routing {
+        get("/") {
+            call.respondText("Hello, from AirClicker!. Server is running currently")
+        }
+        webSocket("/mouse-control") {
+            send("Hello, from AirClicker!. Control mouse either with manual coordinates or sensor data")
+            for (frame in incoming) {
+                frame as? Frame.Text ?: continue
+                val receivedText = frame.readText()
+                try {
+                    // Parse the received message as "x,y"
+                    println("Received message: $receivedText")
+                    val json = Json { ignoreUnknownKeys = true } // Handle unknown fields gracefully
+                    val command = json.decodeFromString(MouseCommand.serializer(), receivedText)
+                    mouseCommandExecutor.invoke(command)
+
+                } catch (e: Exception) {
+                    send("Error parsing input, Ensure your JSON is correctly formatted")
+                }
+            }
+        }
+    }
+
+}
+
+private fun startServer(
     port: Int = 8080,
     onMessage: (String) -> Unit
 ): EmbeddedServer<NettyApplicationEngine, NettyApplicationEngine.Configuration>? {
+
     // Check if port is already in use
-    if (isPortInUse(port)) {
+    val isPortInUse = runCatching { ServerSocket(port).use { false } }.getOrDefault(true)
+
+    if (isPortInUse) {
         onMessage("Port $port is already in use. Cannot start the server.")
         return null
     }
@@ -147,54 +153,12 @@ fun startServer(
 }
 
 
-fun stopServer(
+private fun stopServer(
     server: EmbeddedServer<NettyApplicationEngine, NettyApplicationEngine.Configuration>?,
     onMessage: (String) -> Unit
 ) {
     server?.apply {
         onMessage("Stopped server")
         stop(1000, 1000)
-    }
-}
-
-
-fun Application.module() {
-    install(WebSockets) {
-//        pingPeriod = 15.seconds
-//        timeout = 15.seconds
-//        maxFrameSize = Long.MAX_VALUE
-//        masking = false
-    }
-    routing {
-        get("/") {
-            call.respondText("Hello, from AirClicker!. Server is running currently")
-        }
-
-        webSocket("/echo") {
-            send("Please enter your name")
-            for (frame in incoming) {
-                frame as? Frame.Text ?: continue
-                val receivedText = frame.readText()
-                if (receivedText.equals("bye", ignoreCase = true)) {
-                    close(CloseReason(CloseReason.Codes.NORMAL, "Client said BYE"))
-                } else {
-                    send(Frame.Text("Hi, $receivedText!"))
-                }
-            }
-        }
-    }
-
-
-}
-
-fun isPortInUse(port: Int): Boolean {
-    try {
-        ServerSocket(port).use { socket ->
-            // If the socket is bound successfully, the port is available
-            return false
-        }
-    } catch (e: Exception) {
-        // If an exception is thrown, the port is already in use
-        return true
     }
 }

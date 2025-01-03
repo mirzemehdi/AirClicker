@@ -1,12 +1,8 @@
 package com.mmk.airclicker
 
 import androidx.compose.runtime.Composable
+import com.mmk.airclicker.rotationsensor.RotationSensor
 
-interface Platform {
-    val name: String
-}
-
-expect fun getPlatform(): Platform
 
 @Composable
-expect fun rememberGyroscopeSensor(): GyroscopeSensor
+expect fun rememberRotationSensor(): RotationSensor

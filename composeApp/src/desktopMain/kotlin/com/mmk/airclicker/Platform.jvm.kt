@@ -1,7 +1,9 @@
 package com.mmk.airclicker
 
-class JVMPlatform: Platform {
-    override val name: String = "Java ${System.getProperty("java.version")}"
-}
+import androidx.compose.runtime.Composable
+import com.mmk.airclicker.rotationsensor.RotationSensor
 
-actual fun getPlatform(): Platform = JVMPlatform()
+@Composable
+actual fun rememberRotationSensor(): RotationSensor {
+    TODO("No need to implement this on Desktop")
+}
