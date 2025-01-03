@@ -2,8 +2,16 @@
 
 AirClicker is a cross-platform application developed using **Kotlin Multiplatform**, to control desktop mouse using the motion sensors of mobile devices (Android/iOS). The mobile app communicates with a desktop server through *WebSocket* for real-time control. 
 
+<img src="https://github.com/user-attachments/assets/cf9b8583-dea1-4629-bf5c-45e624abc176" 
+    alt="AirClicker" 
+    style="width: 100%; height: auto; max-width: 400px;">
 
-<img src="https://github.com/user-attachments/assets/cf9b8583-dea1-4629-bf5c-45e624abc176" alt="AirClicker" style="height: 400px; max-width: auto;">
+
+
+https://github.com/user-attachments/assets/412e29f7-e2be-434d-adb2-8cffaa0a27e4
+
+
+
 
 ## Overview
 
