@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.buffer
+import kotlinx.coroutines.flow.catch
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 
@@ -67,6 +68,9 @@ fun App() {
                 rotationSensor
                     .observeRotationData()
                     .buffer(onBufferOverflow = BufferOverflow.DROP_OLDEST)
+                    .catch {
+                        infoText = "Error: $it"
+                    }
                     .collect { rotationData ->
                         val command = MouseCommand.MoveByYawPitch(
                             yaw = rotationData.mapYawToCursorPosition(sensorSensitivity),

@@ -46,5 +46,8 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+
+	<key>NSMotionUsageDescription</key>
+    <string>We need access to your device's motion sensors to detect orientation and movement.</string>
 </dict>
 </plist>

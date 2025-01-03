@@ -2,7 +2,7 @@ package com.mmk.airclicker.rotationsensor
 
 data class RotationData(
     val yaw: Float,  //  (left-right) (0f - 360f)
-    val pitch: Float // (up-down) (-180f - 180f)
+    val pitch: Float // (up-down) (-90f - 90f)
 ) {
 
     // Normalize to range [-1, 1] (-1 = top of screen, 1 = bottom of screen)
