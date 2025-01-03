@@ -23,8 +23,8 @@ internal class IosRotationSensor : RotationSensor() {
             }
 
             motion?.let {
-                val yawInDegrees = motion.attitude.yaw * (180.0 / PI)
-                val pitchInDegrees = motion.attitude.pitch * (180.0 / PI)
+                val yawInDegrees = (-motion.attitude.yaw) * (180.0 / PI)
+                val pitchInDegrees =(-motion.attitude.pitch) * (180.0 / PI)
 
                 val rotationData = processRotationData(yawInDegrees, pitchInDegrees)
                 rotationData?.let { data -> trySend(data) }

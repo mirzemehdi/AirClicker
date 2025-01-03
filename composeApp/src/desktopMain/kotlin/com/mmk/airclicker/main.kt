@@ -37,7 +37,9 @@ import io.ktor.websocket.send
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import java.net.InetAddress
+import java.net.InetSocketAddress
 import java.net.ServerSocket
+import java.net.Socket
 
 fun main() = application {
     Window(
@@ -64,7 +66,7 @@ private fun DesktopApp(modifier: Modifier = Modifier) {
         modifier = modifier
     ) {
         Text("AirClicker WebSocket Server")
-        Text("Host: ${InetAddress.getLocalHost().hostAddress}")
+        Text("Host: ${getLocalIpAddress()}")
 
         BasicTextField(
             value = "PORT: $port",
@@ -102,6 +104,17 @@ private fun DesktopApp(modifier: Modifier = Modifier) {
         }
 
     }
+}
+
+private fun getLocalIpAddress(): String {
+    val inetAddress = InetAddress.getLocalHost()
+    val ipAddress = inetAddress.hostAddress
+    if (ipAddress.startsWith("127.")) {
+        val socket = Socket()
+        socket.connect(InetSocketAddress("google.com", 80))
+        return socket.localAddress.hostAddress
+    } else
+        return inetAddress.hostAddress
 }
 
 
